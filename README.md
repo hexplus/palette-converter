@@ -56,3 +56,7 @@ python palette_converter.py input.gpl --all
 - For `.pal` input, the script reads JASC-PAL text format.
 - For `.png` input, it extracts unique colors from the source image in order of appearance.
 - For `.pal` output, the generated palette is padded to 256 entries (per format requirements).
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
