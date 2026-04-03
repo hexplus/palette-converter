@@ -49,7 +49,23 @@ python palette_converter.py input.gpl --all
 
 - `input` can be any supported source format.
 - `output` can be any supported target format.
-- `--all` (if available in script) triggers export to all supported outputs.
+- `--all` triggers export to all supported outputs.
+
+## Testing
+
+Tests use `pytest` and `Pillow`.
+
+Install dependencies:
+
+```bash
+pip install pytest Pillow
+```
+
+Run tests:
+
+```bash
+pytest -q
+```
 
 ## Notes
 

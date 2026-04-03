@@ -269,7 +269,6 @@ def write_ico(colors, filepath):
 
 def write_cur(colors, filepath):
     """Write CUR cursor file with palette swatch."""
-    # CUR is nearly identical to ICO but with type=2 and hotspot fields
     from PIL import Image
     import io
     n = min(len(colors), 256)
@@ -281,17 +280,31 @@ def write_cur(colors, filepath):
         y = i // cols
         if y < side:
             img.putpixel((x, y), colors[i])
-    # Save as ICO first, then patch header to CUR
+    # Build BMP image data (no file header, just DIB)
     buf = io.BytesIO()
-    img.save(buf, "ICO", sizes=[(side, side)])
-    data = bytearray(buf.getvalue())
-    # ICO header: reserved(2) + type(2) + count(2)
-    # type: 1=ICO, 2=CUR
-    struct.pack_into("<H", data, 2, 2)  # Change type to CUR
-    # In CUR, bytes 4-5 of dir entry are hotspot X,Y instead of color planes/bpp
-    struct.pack_into("<BB", data, 10, 0, 0)  # hotspot 0,0
+    img.save(buf, "BMP")
+    bmp_data = buf.getvalue()
+    # BMP file header is 14 bytes; skip it to get DIB header + pixel data
+    dib_data = bytearray(bmp_data[14:])
+    # CUR requires double-height in DIB header (XOR mask + AND mask)
+    struct.pack_into("<i", dib_data, 4, side * 2)
+    # AND mask: 1-bit transparency mask, all zeros (fully opaque)
+    row_bytes = ((side + 31) // 32) * 4  # rows padded to 4-byte boundary
+    and_mask = b'\x00' * (row_bytes * side)
+    image_data = bytes(dib_data) + and_mask
+    # CUR header: reserved(2) + type(2=CUR) + count(2)
+    header = struct.pack("<HHH", 0, 2, 1)
+    # Directory entry: width, height, colorcount, reserved,
+    #                  hotspot_x(2), hotspot_y(2), size(4), offset(4)
+    dir_entry = struct.pack("<BBBBHHII",
+                            side, side, 0, 0,
+                            0, 0,  # hotspot x, y
+                            len(image_data),
+                            6 + 16)  # offset = header(6) + dir_entry(16)
     with open(filepath, "wb") as f:
-        f.write(data)
+        f.write(header)
+        f.write(dir_entry)
+        f.write(image_data)
 
 
 def write_gif(colors, filepath):
